@@ -23,6 +23,7 @@ func main() {
 	fmt.Println("  GET    /                 - Página principal del Todo List")
 	fmt.Println("  GET    /api/todos        - Obtener todos los todos (HTMX)")
 	fmt.Println("  POST   /api/todos        - Crear un nuevo todo (HTMX)")
+	fmt.Println("  POST   /api/todos/flexible - Crear todo (acepta JSON y Form Data)")
 	fmt.Println("  GET    /api/todos/{id}    - Obtener un todo por ID")
 	fmt.Println("  PUT    /api/todos/{id}    - Actualizar un todo (HTMX)")
 	fmt.Println("  DELETE /api/todos/{id}   - Eliminar un todo (HTMX)")

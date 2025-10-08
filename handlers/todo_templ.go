@@ -6,7 +6,6 @@ import (
 	"time"
 	"todo-list/models"
 	"todo-list/templates"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -53,16 +52,26 @@ func (h *TodoHandlerTempl) GetAllTodos(c *gin.Context) {
 // CreateTodo crea un nuevo todo (para HTMX)
 func (h *TodoHandlerTempl) CreateTodo(c *gin.Context) {
 	var todoReq models.TodoRequest
-	if err := c.ShouldBind(&todoReq); err != nil {
-		c.String(http.StatusBadRequest, "Datos inválidos")
-		return
+	var err error
+	
+	// Intentar bindear como JSON primero
+	err = c.ShouldBindJSON(&todoReq)
+	if err != nil {
+		// Si falla JSON, intentar como form data
+		err = c.ShouldBind(&todoReq)
+		if err != nil {
+			c.String(http.StatusBadRequest, "No se pudo procesar los datos: "+err.Error())
+			return
+		}
 	}
 	
+	// Validar datos
 	if todoReq.Title == "" {
 		c.String(http.StatusBadRequest, "El título es requerido")
 		return
 	}
 	
+	// Crear el todo
 	todo := models.Todo{
 		ID:          h.nextID,
 		Title:       todoReq.Title,
@@ -112,11 +121,25 @@ func (h *TodoHandlerTempl) UpdateTodo(c *gin.Context) {
 	}
 	
 	var todoReq models.TodoRequest
-	if err := c.ShouldBind(&todoReq); err != nil {
-		c.String(http.StatusBadRequest, "Datos inválidos")
+	
+	// Intentar bindear como JSON primero
+	err = c.ShouldBindJSON(&todoReq)
+	if err != nil {
+		// Si falla JSON, intentar como form data
+		err = c.ShouldBind(&todoReq)
+		if err != nil {
+			c.String(http.StatusBadRequest, "No se pudo procesar los datos: "+err.Error())
+			return
+		}
+	}
+	
+	// Validar datos
+	if todoReq.Title == "" {
+		c.String(http.StatusBadRequest, "El título es requerido")
 		return
 	}
 	
+	// Buscar y actualizar el todo
 	for i, todo := range h.todos {
 		if todo.ID == id {
 			h.todos[i].Title = todoReq.Title
@@ -187,6 +210,56 @@ func (h *TodoHandlerTempl) HealthCheck(c *gin.Context) {
 		"message":   "Todo API is running with Templ + HTMX",
 		"framework": "Templ + HTMX",
 		"version":   "v0.2.543",
+		"formats":   []string{"JSON", "Form Data"},
+	})
+}
+
+// CreateTodoFlexible crea un todo aceptando cualquier formato
+func (h *TodoHandlerTempl) CreateTodoFlexible(c *gin.Context) {
+	var todoReq models.TodoRequest
+	var err error
+	
+	// Intentar bindear como JSON primero
+	err = c.ShouldBindJSON(&todoReq)
+	if err != nil {
+		// Si falla JSON, intentar como form data
+		err = c.ShouldBind(&todoReq)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "No se pudo procesar los datos. Acepta JSON o Form Data",
+				"json_error": c.ShouldBindJSON(&todoReq).Error(),
+				"form_error": err.Error(),
+			})
+			return
+		}
+	}
+	
+	// Validar datos
+	if todoReq.Title == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "El título es requerido",
+		})
+		return
+	}
+	
+	// Crear el todo
+	todo := models.Todo{
+		ID:          h.nextID,
+		Title:       todoReq.Title,
+		Description: todoReq.Description,
+		Completed:   todoReq.Completed,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+	
+	h.todos = append(h.todos, todo)
+	h.nextID++
+	
+	// Devolver el todo creado
+	c.JSON(http.StatusCreated, models.Response{
+		Success: true,
+		Message: "Todo creado exitosamente",
+		Data:    todo,
 	})
 }
 

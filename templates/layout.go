@@ -30,6 +30,30 @@ func GetLayoutTemplate() *template.Template {
     <link rel="stylesheet" href="/static/styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script>
+        // Configurar HTMX para enviar JSON automáticamente
+        document.addEventListener('htmx:configRequest', function(event) {
+            if (event.detail.headers && event.detail.headers['Content-Type'] === 'application/json') {
+                const form = event.detail.elt;
+                const formData = new FormData(form);
+                const jsonData = {};
+                
+                // Convertir FormData a JSON
+                for (let [key, value] of formData.entries()) {
+                    if (key === 'completed') {
+                        const checkbox = form.querySelector('input[name="' + key + '"]');
+                        jsonData[key] = checkbox ? checkbox.checked : false;
+                    } else {
+                        jsonData[key] = value;
+                    }
+                }
+                
+                // Enviar como JSON
+                event.detail.xhr.send(JSON.stringify(jsonData));
+                event.preventDefault();
+            }
+        });
+    </script>
 </head>
 <body>
     <div class="container">
@@ -39,7 +63,10 @@ func GetLayoutTemplate() *template.Template {
         </header>
 
         <div class="todo-form">
-            <form hx-post="/api/todos" hx-target="#todoList" hx-swap="outerHTML">
+            <form hx-post="/api/todos/flexible" 
+                  hx-target="#todoList" 
+                  hx-swap="outerHTML"
+                  hx-headers='{"Content-Type": "application/json"}'>
                 <div class="form-group">
                     <input type="text" name="title" placeholder="Título de la tarea" required>
                 </div>
@@ -102,7 +129,8 @@ func GetLayoutTemplate() *template.Template {
                                 <button 
                                     class="btn {{if .Completed}}btn-secondary{{else}}btn-success{{end}}" 
                                     hx-put="/api/todos/{{.ID}}" 
-                                    hx-vals='{"completed": {{if .Completed}}false{{else}}true{{end}}}'
+                                    hx-headers='{"Content-Type": "application/json"}'
+                                    hx-vals='{"title": "{{.Title}}", "description": "{{.Description}}", "completed": {{if .Completed}}false{{else}}true{{end}}}'
                                     hx-target="#todoList"
                                     hx-swap="outerHTML"
                                 >
@@ -223,7 +251,10 @@ func GetEditModalTemplate() *template.Template {
             </button>
         </div>
         <div class="modal-body">
-            <form hx-put="/api/todos/{{.ID}}" hx-target="#todoList" hx-swap="outerHTML">
+            <form hx-put="/api/todos/{{.ID}}" 
+                  hx-target="#todoList" 
+                  hx-swap="outerHTML"
+                  hx-headers='{"Content-Type": "application/json"}'>
                 <div class="form-group">
                     <label for="editTitle">Título:</label>
                     <input type="text" id="editTitle" name="title" value="{{.Title}}" required>

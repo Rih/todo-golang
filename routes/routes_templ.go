@@ -59,6 +59,9 @@ func SetupRoutesTempl() *gin.Engine {
 		api.PUT("/todos/:id", todoHandler.UpdateTodo)
 		api.DELETE("/todos/:id", todoHandler.DeleteTodo)
 		
+		// Endpoint flexible que acepta JSON y Form Data
+		api.POST("/todos/flexible", todoHandler.CreateTodoFlexible)
+		
 		// Rutas para modales
 		api.GET("/todos/:id/edit", todoHandler.GetEditModal)
 		api.GET("/close-modal", todoHandler.CloseModal)
